@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOEIC Listening Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a40;
+    --accent: #6c63ff;
+    --accent2: #ff6b6b;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --glow: rgba(108,99,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(108,99,255,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(255,107,107,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 20s ease-in-out infinite alternate;
+  }
+
+  @keyframes drift {
+    from { transform: translate(0,0) rotate(0deg); }
+    to   { transform: translate(2%, 2%) rotate(1deg); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .logo-badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 14px;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  /* Tab Nav */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    margin-bottom: 40px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+
+  .tab-btn.active {
+    color: #fff;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--glow);
+  }
+
+  .tab-btn.active.brain { background: var(--accent2); box-shadow: 0 0 20px rgba(255,107,107,0.3); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 50px 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--surface2);
+    box-shadow: inset 0 0 30px rgba(108,99,255,0.05);
+  }
+
+  .upload-zone.brain-zone:hover, .upload-zone.brain-zone.dragover {
+    border-color: var(--accent2);
+    box-shadow: inset 0 0 30px rgba(255,107,107,0.05);
+  }
+
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .upload-zone h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .upload-zone p { color: var(--muted); font-size: 12px; }
+
+  .file-input { display: none; }
+
+  /* Format hint */
+  .format-hint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .format-hint strong { color: var(--accent); }
+  .format-hint.brain strong { color: var(--accent2); }
+
+  /* Speed control */
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+  }
+
+  .control-group label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .control-group select, .control-group input[type="range"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  .speed-val {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 36px;
+  }
+
+  /* Action Button */
+  .btn-start {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px var(--glow);
+    margin-top: 24px;
+  }
+
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow); }
+  .btn-start:active { transform: translateY(0); }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-start.brain { background: var(--accent2); box-shadow: 0 4px 20px rgba(255,107,107,0.3); }
+  .btn-start.brain:hover { box-shadow: 0 8px 30px rgba(255,107,107,0.4); }
+
+  /* Player area */
+  .player-area {
+    margin-top: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    display: none;
+  }
+
+  .player-area.visible { display: block; }
+
+  .now-playing {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .current-word {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    color: #fff;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .current-word .word-text {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+  }
+
+  .current-word .word-text.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .progress-bar-fill.brain { background: linear-gradient(90deg, var(--accent2), #ffa751); }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Waveform animation */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 40px;
+    margin-bottom: 20px;
+  }
+
+  .waveform .bar {
+    width: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: wave 0.8s ease-in-out infinite;
+    height: 8px;
+  }
+
+  .waveform.brain .bar { background: var(--accent2); }
+
+  .waveform .bar:nth-child(1)  { animation-delay: 0s; }
+  .waveform .bar:nth-child(2)  { animation-delay: 0.1s; }
+  .waveform .bar:nth-child(3)  { animation-delay: 0.2s; }
+  .waveform .bar:nth-child(4)  { animation-delay: 0.3s; }
+  .waveform .bar:nth-child(5)  { animation-delay: 0.4s; }
+  .waveform .bar:nth-child(6)  { animation-delay: 0.3s; }
+  .waveform .bar:nth-child(7)  { animation-delay: 0.2s; }
+  .waveform .bar:nth-child(8)  { animation-delay: 0.1s; }
+  .waveform .bar:nth-child(9)  { animation-delay: 0s; }
+
+  @keyframes wave {
+    0%, 100% { height: 8px; }
+    50% { height: 32px; }
+  }
+
+  .waveform.paused .bar { animation-play-state: paused; height: 8px !important; }
+
+  /* Brain mode: countdown */
+  .countdown-overlay {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin-top: 20px;
+    display: none;
+  }
+
+  .countdown-overlay.visible { display: block; }
+
+  .countdown-label {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .countdown-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+  }
+
+  .countdown-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .countdown-ring circle {
+    fill: none;
+    stroke-width: 6;
+  }
+
+  .ring-bg { stroke: var(--border); }
+  .ring-fill { stroke: var(--accent2); stroke-dasharray: 339.3; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+
+  .countdown-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--accent2);
+  }
+
+  .countdown-text {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Story display in brain mode */
+  .story-display {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent2);
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    line-height: 1.8;
+    display: none;
+    color: var(--text);
+  }
+
+  .story-display.visible { display: block; }
+
+  /* Stop button */
+  .btn-stop {
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 16px;
+  }
+
+  .btn-stop:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Done banner */
+  .done-banner {
+    background: linear-gradient(135deg, rgba(67,233,123,0.1), rgba(67,233,123,0.05));
+    border: 1px solid rgba(67,233,123,0.3);
+    border-radius: 10px;
+    padding: 20px 24px;
+    text-align: center;
+    display: none;
+    margin-top: 20px;
+  }
+
+  .done-banner.visible { display: block; }
+  .done-banner h3 { font-family: 'Syne', sans-serif; color: var(--accent3); font-size: 20px; margin-bottom: 6px; }
+  .done-banner p { color: var(--muted); font-size: 12px; }
+
+  /* Item list preview */
+  .items-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .item-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .item-chip.done { border-color: var(--accent3); color: var(--accent3); }
+  .item-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+  .item-chip.brain-active { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,107,0.1); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .controls-row { flex-direction: column; align-items: stretch; }
+    .tab-btn { font-size: 12px; padding: 12px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo-badge">TOEIC PREP</div>
+    <h1>Listening Trainer</h1>
+    <p class="subtitle">// sharpen your ear, ace the test</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('listening')">🎧 Listening</button>
+    <button class="tab-btn brain" onclick="switchTab('brain')">🧠 Brain Listening</button>
+  </div>
+
+  <!-- LISTENING PANEL -->
+  <div class="panel active" id="panel-listening">
+
+    <div class="upload-zone" id="drop-listening" onclick="document.getElementById('file-listening').click()">
+      <input type="file" class="file-input" id="file-listening" accept=".txt">
+      <span class="upload-icon">📄</span>
+      <h3>Déposer ou choisir un fichier .txt</h3>
+      <p>Les mots/expressions doivent être séparés par des virgules</p>
+    </div>
+
+    <div class="format-hint">
+      <strong>Format attendu :</strong><br>
+      apple, banana, cherry, good morning, how are you, thank you very much
+    </div>
+
+    <div class="controls-row">
+      <div class="control-group">
+        <label>Vitesse</label>
+        <input type="range" id="speed-listening" min="0.5" max="2" step="0.1" value="0.9"
+          oninput="document.getElementById('speed-val-l').textContent=this.value+'x'">
+        <span class="speed-val" id="speed-val-l">0.9x</span>
+      </div>
+      <div class="control-group">
+        <label>Voix</label>
+        <select id="voice-listening">
+          <option value="en-US">🇺🇸 US English</option>
+          <option value="en-GB">🇬🇧 UK English</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Pause (s)</label>
+        <input type="range" id="pause-listening" min="0.5" max="5" step="0.5" value="1.5"
+          oninput="document.getElementById('pause-val-l').textContent=this.value+'s'">
+        <span class="speed-val" id="pause-val-l">1.5s</span>
+      </div>
+    </div>
+
+    <button class="btn-start" id="btn-start-listening" onclick="startListening()" disabled>
+      ▶ Démarrer la lecture
+    </button>
+
+    <div class="player-area" id="player-listening">
+      <div class="now-playing">En cours de lecture</div>
+      <div class="waveform" id="wave-listening">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+      <div class="current-word">
+        <span class="word-text" id="word-display"></span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-listening"></div>
+      </div>
+      <div class="progress-info">
+        <span id="progress-counter-l">0 / 0</span>
+        <span id="progress-pct-l">0%</span>
+      </div>
+      <div class="items-preview" id="chips-listening"></div>
+      <button class="btn-stop" onclick="stopListening()">■ Arrêter</button>
+    </div>
+
+    <div class="done-banner" id="done-listening">
+      <h3>✓ Session terminée !</h3>
+      <p>Tous les mots ont été lus. Rechargez un fichier pour recommencer.</p>
+    </div>
+  </div>
+
+  <!-- BRAIN LISTENING PANEL -->
+  <div class="panel" id="panel-brain">
+
+    <div class="upload-zone brain-zone" id="drop-brain" onclick="document.getElementById('file-brain').click()">
+      <input type="file" class="file-input" id="file-brain" accept=".txt">
+      <span class="upload-icon">📖</span>
+      <h3>Déposer ou choisir un fichier .txt</h3>
+      <p>Les histoires doivent être séparées par le symbole <strong>|</strong></p>
+    </div>
+
+    <div class="format-hint brain">
+      <strong>Format attendu :</strong><br>
+      Tom went to the market early in the morning... | Sarah was working at the office when suddenly...<br><br>
+      Après chaque histoire : <strong>30 secondes</strong> pour noter ce que vous avez mémorisé ✏️
+    </div>
+
+    <div class="controls-row">
+      <div class="control-group">
+        <label>Vitesse</label>
+        <input type="range" id="speed-brain" min="0.5" max="1.5" step="0.1" value="0.85"
+          oninput="document.getElementById('speed-val-b').textContent=this.value+'x'">
+        <span class="speed-val" id="speed-val-b">0.85x</span>
+      </div>
+      <div class="control-group">
+        <label>Voix</label>
+        <select id="voice-brain">
+          <option value="en-US">🇺🇸 US English</option>
+          <option value="en-GB">🇬🇧 UK English</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Mémorisation</label>
+        <input type="range" id="memo-time" min="15" max="60" step="5" value="30"
+          oninput="document.getElementById('memo-val').textContent=this.value+'s'">
+        <span class="speed-val" id="memo-val">30s</span>
+      </div>
+    </div>
+
+    <button class="btn-start brain" id="btn-start-brain" onclick="startBrain()" disabled>
+      ▶ Démarrer Brain Listening
+    </button>
+
+    <div class="player-area" id="player-brain">
+      <div class="now-playing" id="brain-now-label">Histoire 1 / 1</div>
+      <div class="waveform brain" id="wave-brain">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+      <div class="story-display" id="story-display"></div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill brain" id="progress-brain"></div>
+      </div>
+      <div class="progress-info">
+        <span id="progress-counter-b">0 / 0</span>
+        <span id="progress-pct-b">0%</span>
+      </div>
+
+      <div class="countdown-overlay" id="countdown-area">
+        <div class="countdown-label">✏️ Notez ce que vous avez retenu !</div>
+        <div class="countdown-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="54"/>
+            <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="54"/>
+          </svg>
+          <div class="countdown-number" id="countdown-num">30</div>
+        </div>
+        <div class="countdown-text">Écrivez sur votre feuille tout ce dont vous vous souvenez<br>de l'histoire que vous venez d'entendre.</div>
+      </div>
+
+      <button class="btn-stop" onclick="stopBrain()">■ Arrêter</button>
+    </div>
+
+    <div class="done-banner" id="done-brain">
+      <h3>✓ Session Brain Listening terminée !</h3>
+      <p>Toutes les histoires ont été lues. Vérifiez vos notes et rechargez un fichier pour pratiquer à nouveau.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let listeningItems = [];
+let brainStories   = [];
+let isStopped      = false;
+let countdownTimer = null;
+let voices         = [];
+
+// ── VOICE LOADING ──────────────────────────────────────
+function loadVoices() {
+  voices = window.speechSynthesis.getVoices();
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function getBestVoice(lang) {
+  const preferred = lang === 'en-GB'
+    ? ['Google UK English Female','Google UK English Male','en-GB']
+    : ['Google US English','Microsoft Zira','en-US'];
+  for (const p of preferred) {
+    const v = voices.find(v => v.name.includes(p) || v.lang === p);
+    if (v) return v;
+  }
+  return voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+function speak(text, lang, rate) {
+  return new Promise(resolve => {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang  = lang;
+    utt.rate  = parseFloat(rate);
+    const v   = getBestVoice(lang);
+    if (v) utt.voice = v;
+    utt.onend   = resolve;
+    utt.onerror = resolve;
+    window.speechSynthesis.speak(utt);
+  });
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ── TAB SWITCH ─────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0 && tab==='listening') || (i===1 && tab==='brain')));
+  document.getElementById('panel-listening').classList.toggle('active', tab==='listening');
+  document.getElementById('panel-brain').classList.toggle('active', tab==='brain');
+}
+
+// ── FILE UPLOAD — LISTENING ────────────────────────────
+document.getElementById('file-listening').addEventListener('change', async function() {
+  if (!this.files[0]) return;
+  const fd = new FormData();
+  fd.append('file', this.files[0]);
+  const res = await fetch('/upload_listening', { method:'POST', body: fd });
+  const data = await res.json();
+  listeningItems = data.items || [];
+  document.getElementById('btn-start-listening').disabled = listeningItems.length === 0;
+  document.getElementById('done-listening').classList.remove('visible');
+  document.getElementById('player-listening').classList.remove('visible');
+  setupDrop('drop-listening', `${listeningItems.length} mots chargés ✓`);
+});
+
+// ── FILE UPLOAD — BRAIN ────────────────────────────────
+document.getElementById('file-brain').addEventListener('change', async function() {
+  if (!this.files[0]) return;
+  const fd = new FormData();
+  fd.append('file', this.files[0]);
+  const res = await fetch('/upload_brain', { method:'POST', body: fd });
+  const data = await res.json();
+  brainStories = data.stories || [];
+  document.getElementById('btn-start-brain').disabled = brainStories.length === 0;
+  document.getElementById('done-brain').classList.remove('visible');
+  document.getElementById('player-brain').classList.remove('visible');
+  setupDrop('drop-brain', `${brainStories.length} histoire(s) chargée(s) ✓`);
+});
+
+function setupDrop(id, msg) {
+  const zone = document.getElementById(id);
+  zone.querySelector('h3').textContent = msg;
+}
+
+// Drag & drop
+['drop-listening','drop-brain'].forEach(id => {
+  const zone = document.getElementById(id);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const fileInput = zone.querySelector('input[type="file"]');
+    fileInput.files = e.dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+  });
+});
+
+// ── LISTENING MODE ─────────────────────────────────────
+async function startListening() {
+  isStopped = false;
+  const lang  = document.getElementById('voice-listening').value;
+  const rate  = document.getElementById('speed-listening').value;
+  const pause = parseFloat(document.getElementById('pause-listening').value) * 1000;
+
+  const player = document.getElementById('player-listening');
+  player.classList.add('visible');
+  document.getElementById('done-listening').classList.remove('visible');
+  document.getElementById('btn-start-listening').disabled = true;
+
+  // Build chips
+  const chips = document.getElementById('chips-listening');
+  chips.innerHTML = '';
+  listeningItems.forEach((item, i) => {
+    const c = document.createElement('span');
+    c.className = 'item-chip';
+    c.id = `chip-l-${i}`;
+    c.textContent = item;
+    chips.appendChild(c);
+  });
+
+  const wordEl    = document.getElementById('word-display');
+  const wave      = document.getElementById('wave-listening');
+  const bar       = document.getElementById('progress-listening');
+  const counter   = document.getElementById('progress-counter-l');
+  const pct       = document.getElementById('progress-pct-l');
+
+  for (let i = 0; i < listeningItems.length; i++) {
+    if (isStopped) break;
+
+    // Update chip
+    if (i > 0) document.getElementById(`chip-l-${i-1}`).className = 'item-chip done';
+    document.getElementById(`chip-l-${i}`).className = 'item-chip active';
+
+    // Show word
+    wordEl.classList.remove('show');
+    await sleep(150);
+    wordEl.textContent = listeningItems[i];
+    wordEl.classList.add('show');
+
+    // Progress
+    const p = Math.round(((i+1)/listeningItems.length)*100);
+    bar.style.width = p + '%';
+    counter.textContent = `${i+1} / ${listeningItems.length}`;
+    pct.textContent = p + '%';
+
+    wave.classList.remove('paused');
+    await speak(listeningItems[i], lang, rate);
+    wave.classList.add('paused');
+
+    if (i < listeningItems.length - 1 && !isStopped) await sleep(pause);
+  }
+
+  if (!isStopped) {
+    // Mark last chip done
+    const last = document.getElementById(`chip-l-${listeningItems.length-1}`);
+    if (last) last.className = 'item-chip done';
+    document.getElementById('done-listening').classList.add('visible');
+    wordEl.textContent = '✓';
+  }
+  document.getElementById('btn-start-listening').disabled = false;
+}
+
+function stopListening() {
+  isStopped = true;
+  window.speechSynthesis.cancel();
+  document.getElementById('wave-listening').classList.add('paused');
+  document.getElementById('btn-start-listening').disabled = false;
+}
+
+// ── BRAIN MODE ─────────────────────────────────────────
+async function startBrain() {
+  isStopped = false;
+  const lang     = document.getElementById('voice-brain').value;
+  const rate     = document.getElementById('speed-brain').value;
+  const memoSecs = parseInt(document.getElementById('memo-time').value);
+
+  const player = document.getElementById('player-brain');
+  player.classList.add('visible');
+  document.getElementById('done-brain').classList.remove('visible');
+  document.getElementById('btn-start-brain').disabled = true;
+  document.getElementById('countdown-area').classList.remove('visible');
+
+  const label    = document.getElementById('brain-now-label');
+  const bar      = document.getElementById('progress-brain');
+  const counter  = document.getElementById('progress-counter-b');
+  const pct      = document.getElementById('progress-pct-b');
+  const storyDiv = document.getElementById('story-display');
+  const wave     = document.getElementById('wave-brain');
+
+  for (let i = 0; i < brainStories.length; i++) {
+    if (isStopped) break;
+
+    label.textContent = `Histoire ${i+1} / ${brainStories.length}`;
+
+    const p = Math.round(((i+1)/brainStories.length)*100);
+    bar.style.width = p + '%';
+    counter.textContent = `${i+1} / ${brainStories.length}`;
+    pct.textContent = p + '%';
+
+    // Show story text
+    storyDiv.textContent = brainStories[i];
+    storyDiv.classList.add('visible');
+
+    wave.classList.remove('paused');
+    await speak(brainStories[i], lang, rate);
+    wave.classList.add('paused');
+
+    if (isStopped) break;
+
+    // Hide story — memorization time!
+    storyDiv.classList.remove('visible');
+    await runCountdown(memoSecs);
+
+    if (isStopped) break;
+
+    document.getElementById('countdown-area').classList.remove('visible');
+
+    // Small gap between stories
+    if (i < brainStories.length - 1) await sleep(1500);
+  }
+
+  if (!isStopped) {
+    document.getElementById('done-brain').classList.add('visible');
+  }
+  document.getElementById('btn-start-brain').disabled = false;
+}
+
+function runCountdown(secs) {
+  return new Promise(resolve => {
+    const area    = document.getElementById('countdown-area');
+    const numEl   = document.getElementById('countdown-num');
+    const ringFil = document.getElementById('ring-fill');
+    const circumference = 2 * Math.PI * 54; // 339.3
+
+    area.classList.add('visible');
+    let remaining = secs;
+    numEl.textContent = remaining;
+    ringFil.style.strokeDashoffset = 0;
+
+    countdownTimer = setInterval(() => {
+      if (isStopped) { clearInterval(countdownTimer); resolve(); return; }
+      remaining--;
+      numEl.textContent = remaining;
+      const offset = circumference * (1 - remaining/secs);
+      ringFil.style.strokeDashoffset = offset;
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+        resolve();
+      }
+    }, 1000);
+  });
+}
+
+function stopBrain() {
+  isStopped = true;
+  window.speechSynthesis.cancel();
+  clearInterval(countdownTimer);
+  document.getElementById('wave-brain').classList.add('paused');
+  document.getElementById('countdown-area').classList.remove('visible');
+  document.getElementById('btn-start-brain').disabled = false;
+}
+</script>
+</body>
+</html>
