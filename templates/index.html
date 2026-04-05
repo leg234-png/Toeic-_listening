@@ -528,17 +528,10 @@
   <!-- LISTENING PANEL -->
   <div class="panel active" id="panel-listening">
 
-    <div class="upload-zone" id="drop-listening" onclick="document.getElementById('file-listening').click()">
-      <input type="file" class="file-input" id="file-listening" accept=".txt">
-      <span class="upload-icon">📄</span>
-      <h3>Déposer ou choisir un fichier .txt</h3>
-      <p>Les mots/expressions doivent être séparés par des virgules</p>
-    </div>
-
-    <div class="format-hint">
-      <strong>Format attendu :</strong><br>
-      apple, banana, cherry, good morning, how are you, thank you very much
-    </div>
+<button class="btn-start" id="btn-generate" onclick="generateWithMistral()" style="margin-top:16px;">
+  ✨ Générer avec Mistral
+</button>
+<div id="generate-status" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
 
     <div class="controls-row">
       <div class="control-group">
@@ -979,6 +972,34 @@ function stopBrain() {
   document.getElementById('wave-brain').classList.add('paused');
   document.getElementById('countdown-area').classList.remove('visible');
   document.getElementById('btn-start-brain').disabled = false;
+}
+
+async function generateWithMistral() {
+  const btn = document.getElementById('btn-generate');
+  const status = document.getElementById('generate-status');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération en cours...';
+  status.textContent = '';
+
+try {
+    const res = await fetch('/generate', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) { status.textContent = '❌ ' + data.error; return; }
+
+    listeningItems = data.items;
+    document.getElementById('btn-start-listening').disabled = false;
+    document.getElementById('done-listening').classList.remove('visible');
+    document.getElementById('player-listening').classList.remove('visible');
+    status.textContent = `✅ ${listeningItems.length / 2} paires prêtes !`;
+
+} catch(e) {
+    status.textContent = '❌ Erreur : ' + e.message;
+} finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Générer avec Mistral';
+  }
 }
 </script>
 </body>
