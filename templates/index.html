@@ -556,7 +556,7 @@
       </div>
       <div class="control-group">
         <label>Pause (s)</label>
-        <input type="range" id="pause-listening" min="0.5" max="5" step="0.5" value="1.5"
+        <input type="range" id="pause-listening" min="0.1" max="5" step="0.5" value="1.5"
           oninput="document.getElementById('pause-val-l').textContent=this.value+'s'">
         <span class="speed-val" id="pause-val-l">1.5s</span>
       </div>
@@ -688,26 +688,53 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-function getBestVoice(lang) {
-  const preferred = lang === 'en-GB'
-    ? ['Google UK English Female','Google UK English Male','en-GB']
-    : ['Google US English','Microsoft Zira','en-US'];
-  for (const p of preferred) {
-    const v = voices.find(v => v.name.includes(p) || v.lang === p);
-    if (v) return v;
-  }
-  return voices.find(v => v.lang.startsWith('en')) || null;
+function waitForVoices() {
+  return new Promise(resolve => {
+    if (window.speechSynthesis.getVoices().length > 0) {
+      resolve(window.speechSynthesis.getVoices());
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        resolve(window.speechSynthesis.getVoices());
+      };
+    }
+  });
 }
 
-function speak(text, lang, rate) {
-  return new Promise(resolve => {
+async function getBestVoice(lang) {
+  const voices = await waitForVoices();
+  console.log('Voix disponibles:', voices.map(v => `${v.name} (${v.lang})`));
+
+  if (lang === 'fr-FR') {
+    // Cherche une voix française
+    return (
+      voices.find(v => v.lang === 'fr-FR') ||
+      voices.find(v => v.lang.startsWith('fr')) ||
+      null
+    );
+  } else {
+    // Voix anglaise
+    return (
+      voices.find(v => v.lang === 'en-US') ||
+      voices.find(v => v.lang.startsWith('en')) ||
+      null
+    );
+  }
+}
+
+async function speak(text, lang, rate) {
+  return new Promise(async resolve => {
     window.speechSynthesis.cancel();
+    await sleep(100); // laisser le temps au cancel de s'appliquer
+
     const utt = new SpeechSynthesisUtterance(text);
-    utt.lang  = lang;
-    utt.rate  = parseFloat(rate);
-    const v   = getBestVoice(lang);
-    if (v) utt.voice = v;
-    utt.onend   = resolve;
+    utt.lang = lang;
+    utt.rate = parseFloat(rate);
+
+    const voice = await getBestVoice(lang);
+    console.log(`Lecture "${text}" en ${lang} avec voix: ${voice?.name}`);
+    if (voice) utt.voice = voice;
+
+    utt.onend = resolve;
     utt.onerror = resolve;
     window.speechSynthesis.speak(utt);
   });
@@ -774,61 +801,79 @@ function setupDrop(id, msg) {
 // ── LISTENING MODE ─────────────────────────────────────
 async function startListening() {
   isStopped = false;
-  const lang  = document.getElementById('voice-listening').value;
   const rate  = document.getElementById('speed-listening').value;
   const pause = parseFloat(document.getElementById('pause-listening').value) * 1000;
+
+  // Grouper par paires [anglais, français]
+  const pairs = [];
+  for (let i = 0; i < listeningItems.length; i += 2) {
+    pairs.push({
+      en: listeningItems[i],
+      fr: listeningItems[i + 1] || null
+    });
+  }
 
   const player = document.getElementById('player-listening');
   player.classList.add('visible');
   document.getElementById('done-listening').classList.remove('visible');
   document.getElementById('btn-start-listening').disabled = true;
 
-  // Build chips
+  // Build chips (par paire)
   const chips = document.getElementById('chips-listening');
   chips.innerHTML = '';
-  listeningItems.forEach((item, i) => {
+  pairs.forEach((pair, i) => {
     const c = document.createElement('span');
     c.className = 'item-chip';
     c.id = `chip-l-${i}`;
-    c.textContent = item;
+    c.textContent = `${pair.en}${pair.fr ? ' / ' + pair.fr : ''}`;
     chips.appendChild(c);
   });
 
-  const wordEl    = document.getElementById('word-display');
-  const wave      = document.getElementById('wave-listening');
-  const bar       = document.getElementById('progress-listening');
-  const counter   = document.getElementById('progress-counter-l');
-  const pct       = document.getElementById('progress-pct-l');
+  const wordEl  = document.getElementById('word-display');
+  const wave    = document.getElementById('wave-listening');
+  const bar     = document.getElementById('progress-listening');
+  const counter = document.getElementById('progress-counter-l');
+  const pct     = document.getElementById('progress-pct-l');
 
-  for (let i = 0; i < listeningItems.length; i++) {
+  for (let i = 0; i < pairs.length; i++) {
     if (isStopped) break;
 
-    // Update chip
     if (i > 0) document.getElementById(`chip-l-${i-1}`).className = 'item-chip done';
     document.getElementById(`chip-l-${i}`).className = 'item-chip active';
 
-    // Show word
-    wordEl.classList.remove('show');
-    await sleep(150);
-    wordEl.textContent = listeningItems[i];
-    wordEl.classList.add('show');
-
-    // Progress
-    const p = Math.round(((i+1)/listeningItems.length)*100);
+    const p = Math.round(((i + 1) / pairs.length) * 100);
     bar.style.width = p + '%';
-    counter.textContent = `${i+1} / ${listeningItems.length}`;
+    counter.textContent = `${i + 1} / ${pairs.length}`;
     pct.textContent = p + '%';
 
+    // 🇬🇧 Lire le mot anglais
+    wordEl.classList.remove('show');
+    await sleep(150);
+    wordEl.innerHTML = `<span style="color:#fff">${pairs[i].en}</span>`;
+    wordEl.classList.add('show');
     wave.classList.remove('paused');
-    await speak(listeningItems[i], lang, rate);
+    await speak(pairs[i].en, 'en-US', rate);
     wave.classList.add('paused');
 
-    if (i < listeningItems.length - 1 && !isStopped) await sleep(pause);
+    if (isStopped) break;
+
+    // 🇫🇷 Lire la traduction française
+    if (pairs[i].fr) {
+      await sleep(400);
+      wordEl.classList.remove('show');
+      await sleep(150);
+      wordEl.innerHTML = `<span style="color:var(--accent2)">${pairs[i].fr}</span>`;
+      wordEl.classList.add('show');
+      wave.classList.remove('paused');
+      await speak(pairs[i].fr, 'fr-FR', rate);
+      wave.classList.add('paused');
+    }
+
+    if (i < pairs.length - 1 && !isStopped) await sleep(pause);
   }
 
   if (!isStopped) {
-    // Mark last chip done
-    const last = document.getElementById(`chip-l-${listeningItems.length-1}`);
+    const last = document.getElementById(`chip-l-${pairs.length - 1}`);
     if (last) last.className = 'item-chip done';
     document.getElementById('done-listening').classList.add('visible');
     wordEl.textContent = '✓';
