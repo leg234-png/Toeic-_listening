@@ -41,14 +41,16 @@ def upload_brain():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    print("Clé Mistral chargée :", MISTRAL_API_KEY[:8] if MISTRAL_API_KEY else "AUCUNE")
+    data = request.get_json(silent=True) or {}
+    count = data.get('count', 250)  # 20 par défaut
+
     prompt = (
-        'Je me prépare au test TOEIC. Génère 250 paires de mots et expressions variés '
-        '(vocabulaire général, business, phrasal verbs) '
-        'sous ce format exact : mot_anglais, traduction_française, mot_anglais, traduction_française, ... '
-        'Tout sur une seule ligne, séparé uniquement par des virgules. '
-        'Aucun texte avant ou après, aucune numérotation, aucune explication. '
-        'Fournir une version différente à chaque appel.'
+        f'Je me prépare au test TOEIC. Génère exactement {count} paires de mots et expressions variés '
+        f'(vocabulaire général, business, phrasal verbs, voyages, finance) '
+        f'sous ce format exact : mot_anglais, traduction_française, mot_anglais, traduction_française, ... '
+        f'Tout sur une seule ligne, séparé uniquement par des virgules. '
+        f'Aucun texte avant ou après, aucune numérotation, aucune explication. '
+        f'Fournir une version différente à chaque appel.'
     )
 
     response = requests.post(
@@ -61,7 +63,7 @@ def generate():
             'model': 'mistral-small-latest',
             'messages': [{'role': 'user', 'content': prompt}],
             'temperature': 0.9,
-            'max_tokens': 800
+            'max_tokens': min(count * 15, 8000)  # ~15 tokens par paire, max 8000
         }
     )
 
